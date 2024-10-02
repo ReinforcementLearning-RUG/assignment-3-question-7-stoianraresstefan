@@ -37,10 +37,25 @@ class TDLambdaEvaluator(AbstractEvaluator):
 
         return self.value_fun.copy()
 
-    def _update_value_function(self, policy: AbstractPolicy) -> None:
-        """
-        Runs a single episode using the TD(λ) method to update the value function.
+def _update_value_function(self, policy: AbstractPolicy) -> None:
+    """
+    Runs a single episode using the TD(λ) method to update the value function.
 
-        :param policy: A policy object that provides action probabilities for each state.
-        """
-        pass
+    :param policy: A policy object that provides action probabilities for each state.
+    """
+    state = self.env.reset()
+    done = False
+    eligibility_traces = np.zeros_like(self.value_fun)
+
+    while not done:
+        action = policy.select_action(state)
+        next_state, reward, done = self.env.step(action)
+        td_target = reward + self.env.discount_factor * self.value_fun[next_state]
+        td_error = td_target - self.value_fun[state]
+        eligibility_traces[state] += 1
+
+        for s in range(len(self.value_fun)):
+            self.value_fun[s] += self.alpha * td_error * eligibility_traces[s]
+            eligibility_traces[s] *= self.env.discount_factor * self.lambda_
+
+        state = next_state
